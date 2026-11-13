@@ -1,0 +1,662 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Правила сервера Discord — Log Horizon</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=JetBrains+Mono:wght@500;600&display=swap" rel="stylesheet">
+    <style>
+        :root {
+            --bg-dark: #121316;
+            --bg-card: #1a1b20;
+            --bg-hover: #22242b;
+            --bg-header: #0d0e11;
+            --text-main: #f2f3f5;
+            --text-muted: #b5bac1;
+            --text-dim: #80848e;
+            --accent: #a855f7;
+            --border: #2f3136;
+            
+            --sev-low-bg: rgba(35, 165, 90, 0.12);
+            --sev-low-text: #2dc770;
+            --sev-low-border: #2dc770;
+
+            --sev-med-bg: rgba(240, 178, 50, 0.12);
+            --sev-med-text: #f0b232;
+            --sev-med-border: #f0b232;
+
+            --sev-high-bg: rgba(235, 100, 52, 0.12);
+            --sev-high-text: #ff7b47;
+            --sev-high-border: #ff7b47;
+
+            --sev-crit-bg: rgba(242, 63, 67, 0.12);
+            --sev-crit-text: #f23f43;
+            --sev-crit-border: #f23f43;
+
+            --sev-info-bg: rgba(168, 85, 247, 0.12);
+            --sev-info-text: #d8b4fe;
+            --sev-info-border: #a855f7;
+        }
+
+        * {
+            box-sizing: border-box;
+            margin: 0;
+            padding: 0;
+        }
+
+        body {
+            font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
+            background-color: var(--bg-dark);
+            color: var(--text-main);
+            line-height: 1.6;
+            padding-bottom: 60px;
+        }
+
+        @keyframes neonPulseGlow {
+            0% {
+                box-shadow: 0 0 5px rgba(168, 85, 247, 0.25), inset 0 0 5px rgba(168, 85, 247, 0.1), 0 0 15px rgba(168, 85, 247, 0.35);
+                border-color: rgba(168, 85, 247, 0.6);
+            }
+            50% {
+                box-shadow: 0 0 22px rgba(168, 85, 247, 0.65), inset 0 0 10px rgba(168, 85, 247, 0.3), 0 0 40px rgba(168, 85, 247, 0.8);
+                border-color: rgba(168, 85, 247, 1);
+            }
+            100% {
+                box-shadow: 0 0 5px rgba(168, 85, 247, 0.25), inset 0 0 5px rgba(168, 85, 247, 0.1), 0 0 15px rgba(168, 85, 247, 0.35);
+                border-color: rgba(168, 85, 247, 0.6);
+            }
+        }
+
+        @keyframes badgeNeonPulse {
+            0% { box-shadow: 0 0 4px currentColor; }
+            50% { box-shadow: 0 0 14px currentColor, 0 0 6px currentColor inset; }
+            100% { box-shadow: 0 0 4px currentColor; }
+        }
+
+        @keyframes textNeonGlow {
+            0% { text-shadow: 0 0 8px rgba(255, 255, 255, 0.2), 0 0 20px rgba(168, 85, 247, 0.4); }
+            50% { text-shadow: 0 0 12px rgba(255, 255, 255, 0.5), 0 0 30px rgba(168, 85, 247, 0.8), 0 0 55px rgba(168, 85, 247, 0.6); }
+            100% { text-shadow: 0 0 8px rgba(255, 255, 255, 0.2), 0 0 20px rgba(168, 85, 247, 0.4); }
+        }
+
+        header {
+            background: linear-gradient(180deg, var(--bg-header) 0%, var(--bg-dark) 100%);
+            border-bottom: 1px solid rgba(168, 85, 247, 0.3);
+            padding: 54px 20px 40px;
+            text-align: center;
+        }
+
+        .badge-clan {
+            display: inline-block;
+            background: rgba(168, 85, 247, 0.2);
+            color: #d8b4fe;
+            border: 1px solid #a855f7;
+            padding: 6px 16px;
+            border-radius: 999px;
+            font-size: 0.82rem;
+            font-weight: 700;
+            letter-spacing: 0.08em;
+            text-transform: uppercase;
+            margin-bottom: 14px;
+            animation: badgeNeonPulse 3s infinite ease-in-out;
+        }
+
+        header h1 {
+            font-size: 2.6rem;
+            font-weight: 800;
+            letter-spacing: -0.02em;
+            margin-bottom: 12px;
+            color: #ffffff;
+            animation: textNeonGlow 4s infinite ease-in-out;
+        }
+
+        header p {
+            max-width: 680px;
+            margin: 0 auto;
+            color: var(--text-muted);
+            font-size: 1.05rem;
+        }
+
+        .container {
+            max-width: 1180px;
+            margin: 0 auto;
+            padding: 0 20px;
+        }
+
+        .controls {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 14px;
+            justify-content: space-between;
+            align-items: center;
+            margin: 32px 0 24px;
+            background: var(--bg-card);
+            padding: 18px;
+            border-radius: 14px;
+            border: 1px solid rgba(168, 85, 247, 0.3);
+            animation: neonPulseGlow 5s infinite ease-in-out;
+        }
+
+        .search-box {
+            position: relative;
+            flex: 1 1 280px;
+        }
+
+        .search-box input {
+            width: 100%;
+            background: var(--bg-dark);
+            border: 1px solid var(--border);
+            color: var(--text-main);
+            padding: 12px 14px 12px 40px;
+            border-radius: 10px;
+            font-size: 0.95rem;
+            font-family: inherit;
+            outline: none;
+            transition: all 0.3s ease;
+        }
+
+        .search-box input:focus {
+            border-color: var(--accent);
+            box-shadow: 0 0 14px rgba(168, 85, 247, 0.6);
+        }
+
+        .search-box svg {
+            position: absolute;
+            left: 14px;
+            top: 50%;
+            transform: translateY(-50%);
+            color: var(--accent);
+            width: 18px;
+            height: 18px;
+            filter: drop-shadow(0 0 4px var(--accent));
+        }
+
+        .filter-group {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 8px;
+        }
+
+        .filter-btn {
+            background: var(--bg-dark);
+            color: var(--text-muted);
+            border: 1px solid var(--border);
+            padding: 9px 16px;
+            border-radius: 8px;
+            font-size: 0.85rem;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.3s ease;
+        }
+
+        .filter-btn:hover {
+            background: var(--bg-hover);
+            color: var(--text-main);
+            border-color: rgba(168, 85, 247, 0.5);
+        }
+
+        .filter-btn.active {
+            background: var(--accent);
+            color: #fff;
+            border-color: #a855f7;
+            box-shadow: 0 0 18px rgba(168, 85, 247, 0.8);
+        }
+
+        .table-container {
+            background: var(--bg-card);
+            border-radius: 14px;
+            border: 1px solid rgba(168, 85, 247, 0.3);
+            overflow-x: auto;
+            box-shadow: 0 10px 30px rgba(0, 0, 0, 0.4);
+            animation: neonPulseGlow 6s infinite ease-in-out;
+        }
+
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            text-align: left;
+        }
+
+        thead {
+            background-color: #151619;
+            border-bottom: 2px solid rgba(168, 85, 247, 0.3);
+        }
+
+        th {
+            padding: 18px;
+            font-size: 0.8rem;
+            font-weight: 700;
+            text-transform: uppercase;
+            letter-spacing: 0.06em;
+            color: #d8b4fe;
+            text-shadow: 0 0 6px rgba(168, 85, 247, 0.4);
+            white-space: nowrap;
+        }
+
+        tbody tr.category-row {
+            background-color: rgba(168, 85, 247, 0.12);
+            border-top: 1px solid rgba(168, 85, 247, 0.3);
+            border-bottom: 1px solid rgba(168, 85, 247, 0.3);
+        }
+
+        tbody tr.category-row td {
+            padding: 14px 18px;
+            font-weight: 700;
+            font-size: 0.98rem;
+            color: #e9d5ff;
+            letter-spacing: 0.01em;
+            text-shadow: 0 0 10px rgba(168, 85, 247, 0.6);
+        }
+
+        tbody tr.rule-row {
+            border-bottom: 1px solid var(--border);
+            transition: background-color 0.2s;
+        }
+
+        tbody tr.rule-row:last-child {
+            border-bottom: none;
+        }
+
+        tbody tr.rule-row:hover {
+            background-color: var(--bg-hover);
+        }
+
+        td {
+            padding: 18px;
+            vertical-align: top;
+        }
+
+        .rule-id {
+            font-family: 'JetBrains Mono', monospace;
+            font-weight: 600;
+            font-size: 0.9rem;
+            color: #e9d5ff;
+            background: var(--bg-dark);
+            padding: 5px 10px;
+            border-radius: 6px;
+            border: 1px solid rgba(168, 85, 247, 0.4);
+            display: inline-block;
+            white-space: nowrap;
+            box-shadow: 0 0 10px rgba(168, 85, 247, 0.25);
+        }
+
+        .rule-title {
+            font-weight: 700;
+            font-size: 1.08rem;
+            color: var(--text-main);
+        }
+
+        .rule-note {
+            margin-top: 10px;
+            padding: 10px 14px;
+            background: rgba(168, 85, 247, 0.08);
+            border-left: 3px solid var(--accent);
+            border-radius: 0 6px 6px 0;
+            font-size: 0.88rem;
+            color: #dbdee1;
+            box-shadow: inset 5px 0 12px -5px rgba(168, 85, 247, 0.5);
+        }
+
+        .punishment-cell {
+            min-width: 280px;
+        }
+
+        .badge {
+            display: inline-flex;
+            align-items: center;
+            gap: 6px;
+            padding: 6px 12px;
+            border-radius: 8px;
+            font-size: 0.82rem;
+            font-weight: 700;
+            margin-bottom: 10px;
+            border: 1px solid transparent;
+            animation: badgeNeonPulse 3s infinite ease-in-out;
+        }
+
+        .badge-low { background: var(--sev-low-bg); color: var(--sev-low-text); border-color: var(--sev-low-border); }
+        .badge-med { background: var(--sev-med-bg); color: var(--sev-med-text); border-color: var(--sev-med-border); }
+        .badge-high { background: var(--sev-high-bg); color: var(--sev-high-text); border-color: var(--sev-high-border); }
+        .badge-crit { background: var(--sev-crit-bg); color: var(--sev-crit-text); border-color: var(--sev-crit-border); }
+        .badge-info { background: var(--sev-info-bg); color: var(--sev-info-text); border-color: var(--sev-info-border); }
+
+        .punishment-steps {
+            list-style: none;
+            font-size: 0.88rem;
+            color: var(--text-muted);
+        }
+
+        .punishment-steps li {
+            margin-bottom: 6px;
+            padding-left: 14px;
+            position: relative;
+        }
+
+        .punishment-steps li::before {
+            content: "•";
+            position: absolute;
+            left: 0;
+            color: var(--accent);
+            text-shadow: 0 0 6px var(--accent);
+        }
+
+        .punishment-steps strong {
+            color: var(--text-main);
+        }
+
+        .empty-state {
+            text-align: center;
+            padding: 45px 20px;
+            color: var(--text-dim);
+            display: none;
+        }
+
+        footer {
+            margin-top: 36px;
+            text-align: center;
+            color: var(--text-dim);
+            font-size: 0.88rem;
+        }
+
+        @media (max-width: 768px) {
+            header h1 { font-size: 2rem; }
+            th:nth-child(1), td:nth-child(1) { width: 70px; }
+            td, th { padding: 12px; }
+        }
+    </style>
+</head>
+<body>
+
+<header>
+    <div class="badge-clan">Discord Сервер • Клан</div>
+    <h1>Правила клана — Log Horizon</h1>
+    <p>Добро пожаловать на наш сервер! Чтобы всем было комфортно общаться, находить тиммейтов и проводить время, просим соблюдать эти правила.</p>
+</header>
+
+<div class="container">
+    <div class="controls">
+        <div class="search-box">
+            <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+                <path stroke-linecap="round" stroke-linejoin="round" d="M21 21l-4.35-4.35m0 0A7.5 7.5 0 1010.5 18a7.5 7.5 0 006.15-3.35z" />
+            </svg>
+            <input type="text" id="searchInput" placeholder="Поиск по правилам или наказаниям...">
+        </div>
+        <div class="filter-group" id="filterGroup">
+            <button class="filter-btn active" data-filter="all">Все правила</button>
+            <button class="filter-btn" data-filter="low">Мягкие / Пред</button>
+            <button class="filter-btn" data-filter="med">Мут / Кик</button>
+            <button class="filter-btn" data-filter="high">Временный бан</button>
+            <button class="filter-btn" data-filter="crit">Перманентный бан</button>
+        </div>
+    </div>
+
+    <div class="table-container">
+        <table id="rulesTable">
+            <thead>
+                <tr>
+                    <th style="width: 90px;">Пункт</th>
+                    <th>Правило</th>
+                    <th style="width: 320px;">Мера наказания</th>
+                </tr>
+            </thead>
+            <tbody>
+                <tr class="category-row" data-cat="0"><td colspan="3">0. Базовые требования поведения</td></tr>
+                <tr class="rule-row" data-severity="crit">
+                    <td><span class="rule-id">0.1</span></td>
+                    <td><div class="rule-title">Неадекватность</div></td>
+                    <td class="punishment-cell">
+                        <span class="badge badge-crit">Мут / Перманентный бан</span>
+                        <ul class="punishment-steps">
+                            <li><strong>1-е нарушение:</strong> Устное предупреждение / Мут на 3 часа</li>
+                            <li><strong>2-е нарушение:</strong> Перманентный бан</li>
+                        </ul>
+                    </td>
+                </tr>
+
+                <tr class="category-row" data-cat="1"><td colspan="3">1. Общение и атмосфера (взаимоуважение)</td></tr>
+                <tr class="rule-row" data-severity="high">
+                    <td><span class="rule-id">1.1</span></td>
+                    <td><div class="rule-title">Уважение к участникам</div></td>
+                    <td class="punishment-cell">
+                        <span class="badge badge-high">Мут / Бан</span>
+                        <ul class="punishment-steps">
+                            <li><strong>Оскорбления / токсичность:</strong> Мут от 2 до 24 часов</li>
+                            <li><strong>Буллинг / травля:</strong> Бан от 3 до 14 дней</li>
+                            <li><strong>Дискриминация / разжигание:</strong> Бан от 7 дней до перманентного</li>
+                        </ul>
+                    </td>
+                </tr>
+                <tr class="rule-row" data-severity="info">
+                    <td><span class="rule-id">1.2</span></td>
+                    <td>
+                        <div class="rule-title">Исключение для друзей («по обоюдному согласию»)</div>
+                        <div class="rule-note"><strong>Главное правило здесь:</strong> если кто-то просит прекратить, это нужно сразу остановить.</div>
+                    </td>
+                    <td class="punishment-cell">
+                        <span class="badge badge-info">Условное исключение</span>
+                        <ul class="punishment-steps">
+                            <li><strong>При обоюдном согласии:</strong> Без наказания</li>
+                            <li><strong>Отказ остановиться по просьбе:</strong> Наказание по п. 1.1 (Мут от 2 часов / Бан)</li>
+                        </ul>
+                    </td>
+                </tr>
+                <tr class="rule-row" data-severity="low">
+                    <td><span class="rule-id">1.3</span></td>
+                    <td><div class="rule-title">Адекватность в голосовых каналах</div></td>
+                    <td class="punishment-cell">
+                        <span class="badge badge-low">Предупреждение / Войс-мут</span>
+                        <ul class="punishment-steps">
+                            <li><strong>1-е нарушение:</strong> Устное предупреждение модератора</li>
+                            <li><strong>Игнорирование:</strong> Серверный мут микрофона от 30 мин до 6 часов / Кик из канала</li>
+                        </ul>
+                    </td>
+                </tr>
+
+                <tr class="category-row" data-cat="2"><td colspan="3">2. Порядок в каналах и текстовый этикет</td></tr>
+                <tr class="rule-row" data-severity="low">
+                    <td><span class="rule-id">2.1</span></td>
+                    <td><div class="rule-title">Пишите в правильные каналы</div></td>
+                    <td class="punishment-cell">
+                        <span class="badge badge-low">Предупреждение / Удаление</span>
+                        <ul class="punishment-steps">
+                            <li><strong>1-е нарушение:</strong> Удаление сообщений + устное предупреждение</li>
+                            <li><strong>Повторно:</strong> Тайм-аут (мут) от 15 до 60 минут</li>
+                        </ul>
+                    </td>
+                </tr>
+                <tr class="rule-row" data-severity="med">
+                    <td><span class="rule-id">2.2</span></td>
+                    <td><div class="rule-title">Запрещен спам и флуд</div></td>
+                    <td class="punishment-cell">
+                        <span class="badge badge-med">Удаление + Мут</span>
+                        <ul class="punishment-steps">
+                            <li><strong>1-е нарушение:</strong> Удаление сообщений + мут от 30 мин до 2 часов</li>
+                            <li><strong>Массовый флуд / рейды:</strong> Бан от 1 дня до перманентного</li>
+                        </ul>
+                    </td>
+                </tr>
+                <tr class="rule-row" data-severity="crit">
+                    <td><span class="rule-id">2.3</span></td>
+                    <td><div class="rule-title">Реклама</div></td>
+                    <td class="punishment-cell">
+                        <span class="badge badge-crit">Бан / Перманентный бан</span>
+                        <ul class="punishment-steps">
+                            <li><strong>Реклама стримов / соцсетей:</strong> Удаление + Мут 24 часа / Предупреждение</li>
+                            <li><strong>Реклама ДС-серверов, продаж, бустинга:</strong> Перманентный бан</li>
+                        </ul>
+                    </td>
+                </tr>
+
+                <tr class="category-row" data-cat="3"><td colspan="3">3. Игровой процесс и честная игра</td></tr>
+                <tr class="rule-row" data-severity="crit">
+                    <td><span class="rule-id">3.1</span></td>
+                    <td><div class="rule-title">Никаких читов и стороннего ПО</div></td>
+                    <td class="punishment-cell">
+                        <span class="badge badge-crit">Перманентный бан</span>
+                        <ul class="punishment-steps">
+                            <li><strong>Использование / распространение / призывы:</strong> Немедленный перманентный бан без права амнистии</li>
+                        </ul>
+                    </td>
+                </tr>
+                <tr class="rule-row" data-severity="med">
+                    <td><span class="rule-id">3.2</span></td>
+                    <td><div class="rule-title">Без токсичности за плохой скилл</div></td>
+                    <td class="punishment-cell">
+                        <span class="badge badge-med">Предупреждение / Мут</span>
+                        <ul class="punishment-steps">
+                            <li><strong>1-е нарушение:</strong> Устное замечание / Войс-мут 30 мин</li>
+                            <li><strong>Систематический хейт:</strong> Мут от 3 до 24 часов</li>
+                        </ul>
+                    </td>
+                </tr>
+
+                <tr class="category-row" data-cat="4"><td colspan="3">4. Безопасность и конфиденциальность</td></tr>
+                <tr class="rule-row" data-severity="crit">
+                    <td><span class="rule-id">4.1</span></td>
+                    <td><div class="rule-title">Никакого мошенничества и скама</div></td>
+                    <td class="punishment-cell">
+                        <span class="badge badge-crit">Перманентный бан</span>
+                        <ul class="punishment-steps">
+                            <li><strong>Любая попытка скама или фишинга:</strong> Немедленный перманентный бан с удалением всех сообщений</li>
+                        </ul>
+                    </td>
+                </tr>
+                <tr class="rule-row" data-severity="crit">
+                    <td><span class="rule-id">4.2</span></td>
+                    <td><div class="rule-title">Личные данные (Доксинг / Сваттинг)</div></td>
+                    <td class="punishment-cell">
+                        <span class="badge badge-crit">Перманентный бан</span>
+                        <ul class="punishment-steps">
+                            <li><strong>Слив данных / доксинг / сваттинг:</strong> Немедленный перманентный бан</li>
+                        </ul>
+                    </td>
+                </tr>
+
+                <tr class="category-row" data-cat="5"><td colspan="3">5. Профиль, никнеймы и контент (18+)</td></tr>
+                <tr class="rule-row" data-severity="med">
+                    <td><span class="rule-id">5.1</span></td>
+                    <td><div class="rule-title">Ник и аватарка</div></td>
+                    <td class="punishment-cell">
+                        <span class="badge badge-med">Смена ника / Кик / Бан</span>
+                        <ul class="punishment-steps">
+                            <li><strong>Нечитаемый или матерный ник:</strong> Принудительная смена ника + просьба сменить аватар</li>
+                            <li><strong>Отказ / запрещенные ссылки:</strong> Кик с сервера или бан до исправления</li>
+                        </ul>
+                    </td>
+                </tr>
+                <tr class="rule-row" data-severity="crit">
+                    <td><span class="rule-id">5.2</span></td>
+                    <td><div class="rule-title">Возрастные ограничения (18+)</div></td>
+                    <td class="punishment-cell">
+                        <span class="badge badge-crit">Перманентный бан</span>
+                        <ul class="punishment-steps">
+                            <li><strong>Шок-контент, порнография, NSFW:</strong> Немедленный перманентный бан и удаление материалов</li>
+                        </ul>
+                    </td>
+                </tr>
+
+                <tr class="category-row" data-cat="6"><td colspan="3">6. Администрация и порядок</td></tr>
+                <tr class="rule-row" data-severity="med">
+                    <td><span class="rule-id">6.1</span></td>
+                    <td><div class="rule-title">Решения модераторов</div></td>
+                    <td class="punishment-cell">
+                        <span class="badge badge-med">Мут / Тайм-аут</span>
+                        <ul class="punishment-steps">
+                            <li><strong>1-е нарушение:</strong> Мут от 1 до 6 часов</li>
+                            <li><strong>Провокации / игнорирование:</strong> Мут 24 часа или бан до 7 дней</li>
+                        </ul>
+                    </td>
+                </tr>
+                <tr class="rule-row" data-severity="info">
+                    <td><span class="rule-id">6.2</span></td>
+                    <td><div class="rule-title">Обжалование наказаний</div></td>
+                    <td class="punishment-cell">
+                        <span class="badge badge-info">Регламент апелляции</span>
+                        <ul class="punishment-steps">
+                            <li><strong>Адекватное обращение в ЛС:</strong> Пересмотр решения администрацией</li>
+                            <li><strong>Оскорбления / агрессия в ЛС:</strong> Отказ в разбане без права повторной апелляции</li>
+                        </ul>
+                    </td>
+                </tr>
+                <tr class="rule-row" data-severity="high">
+                    <td><span class="rule-id">6.3</span></td>
+                    <td><div class="rule-title">Незнание правил не освобождает от ответственности</div></td>
+                    <td class="punishment-cell">
+                        <span class="badge badge-high">На усмотрение администрации</span>
+                        <ul class="punishment-steps">
+                            <li><strong>Мера пресечения:</strong> От устного предупреждения до перманентного бана в зависимости от тяжести и контекста</li>
+                        </ul>
+                    </td>
+                </tr>
+            </tbody>
+        </table>
+        <div class="empty-state" id="emptyState">
+            По вашему запросу правил не найдено. Попробуйте изменить фильтр или поисковый запрос.
+        </div>
+    </div>
+
+    <footer>
+        Клан Log Horizon • Актуальный свод правил Discord-сервера
+    </footer>
+</div>
+
+<script>
+    const searchInput = document.getElementById('searchInput');
+    const filterButtons = document.querySelectorAll('.filter-btn');
+    const ruleRows = document.querySelectorAll('.rule-row');
+    const categoryRows = document.querySelectorAll('.category-row');
+    const emptyState = document.getElementById('emptyState');
+
+    let currentFilter = 'all';
+
+    function filterTable() {
+        const query = searchInput.value.toLowerCase().trim();
+        let visibleCount = 0;
+
+        ruleRows.forEach(row => {
+            const text = row.innerText.toLowerCase();
+            const severity = row.getAttribute('data-severity');
+            
+            const matchesSearch = text.includes(query);
+            const matchesFilter = currentFilter === 'all' || severity === currentFilter;
+
+            if (matchesSearch && matchesFilter) {
+                row.style.display = '';
+                visibleCount++;
+            } else {
+                row.style.display = 'none';
+            }
+        });
+
+        categoryRows.forEach(catRow => {
+            let next = catRow.nextElementSibling;
+            let hasVisibleRule = false;
+            while (next && !next.classList.contains('category-row')) {
+                if (next.classList.contains('rule-row') && next.style.display !== 'none') {
+                    hasVisibleRule = true;
+                    break;
+                }
+                next = next.nextElementSibling;
+            }
+            catRow.style.display = hasVisibleRule ? '' : 'none';
+        });
+
+        emptyState.style.display = visibleCount === 0 ? 'block' : 'none';
+    }
+
+    searchInput.addEventListener('input', filterTable);
+
+    filterButtons.forEach(btn => {
+        btn.addEventListener('click', () => {
+            filterButtons.forEach(b => b.classList.remove('active'));
+            btn.classList.add('active');
+            currentFilter = btn.getAttribute('data-filter');
+            filterTable();
+        });
+    });
+</script>
+
+</body>
+</html>
